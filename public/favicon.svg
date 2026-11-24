@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- 둥근 다크 네이비 배경 -->
+  <rect width="64" height="64" rx="14" fill="#0f172a"/>
+
+  <!-- 원근감 있는 일본 도로 아스팔트 -->
+  <polygon points="10,64 24,18 40,18 54,64" fill="#334155"/>
+
+  <!-- 양쪽 흰색 갓길선 -->
+  <line x1="12" y1="64" x2="25" y2="18" stroke="#f8fafc" stroke-width="2.2"/>
+  <line x1="52" y1="64" x2="39" y2="18" stroke="#f8fafc" stroke-width="2.2"/>
+
+  <!-- 주황색 중앙선 -->
+  <line x1="32" y1="64" x2="32" y2="18" stroke="#f59e0b" stroke-width="2.6"/>
+
+  <!-- 좌측 차선(왼쪽!)을 달리는 흰색 일본 렌트카 -->
+  <g transform="translate(13, 35)">
+    <!-- 차량 그림자 -->
+    <ellipse cx="8" cy="18" rx="8.5" ry="2.5" fill="rgba(0,0,0,0.45)"/>
+    <!-- 차체 본체 -->
+    <rect x="1" y="6" width="14" height="11" rx="3" fill="#f8fafc"/>
+    <!-- 앞유리 캐빈 -->
+    <path d="M 3 7 L 4.5 2.5 Q 8 1.5 11.5 2.5 L 13 7 Z" fill="#38bdf8"/>
+    <!-- 뒤 브레이크등 (빨강) -->
+    <rect x="2.2" y="10.5" width="3" height="2" rx="0.6" fill="#ef4444"/>
+    <rect x="10.8" y="10.5" width="3" height="2" rx="0.6" fill="#ef4444"/>
+    <!-- 바퀴 -->
+    <rect x="2" y="15.5" width="3" height="3" rx="0.8" fill="#1e293b"/>
+    <rect x="11" y="15.5" width="3" height="3" rx="0.8" fill="#1e293b"/>
+  </g>
+
+  <!-- 일본 테마 포인트: 상단 중앙 빨간 태양 심볼 -->
+  <circle cx="32" cy="10" r="5.2" fill="#ef4444"/>
+
+  <!-- 좌측 주행 강조 초록 화살표 (좌측 차선 위) -->
+  <path d="M 21 31 L 24 25 L 27 31" fill="none" stroke="#4ade80" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
