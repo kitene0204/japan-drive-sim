@@ -75,6 +75,7 @@ const btnGuideline = document.getElementById('btn-guideline');
 const btnLkaToggle = document.getElementById('btn-lka-toggle');
 const btnTiltToggle = document.getElementById('btn-tilt-toggle');
 const btnTouchToggle = document.getElementById('btn-touch-toggle');
+const btnMute = document.getElementById('btn-mute');
 const btnReset = document.getElementById('btn-reset');
 
 const toggleGuideBtn = document.getElementById('toggle-guide-btn');
@@ -193,6 +194,16 @@ btnTurnLeft.addEventListener('click', () => toggleTurnSignal('left'));
 btnTurnRight.addEventListener('click', () => toggleTurnSignal('right'));
 btnWiper.addEventListener('click', () => triggerWiperMistake());
 btnReset.addEventListener('click', () => resetCarPosition());
+
+// 음소거(효과음 켜기/끄기) 토글 함수
+function toggleMuteMode() {
+  sound.enabled = !sound.enabled;
+  btnMute.classList.toggle('active', sound.enabled);
+  btnMute.textContent = sound.enabled ? '🔊 소리 ON' : '🔇 음소거';
+  showToast(sound.enabled ? '🔊 주행 효과음이 켜졌습니다.' : '🔇 음소거 모드입니다.', 'info');
+}
+
+btnMute.addEventListener('click', () => toggleMuteMode());
 
 // 자율주행(시범 주행) 켜기/끄기 토글 함수
 function toggleAutopilotMode() {
@@ -406,6 +417,7 @@ window.addEventListener('keydown', (e) => {
     if (code === 'KeyQ') triggerWiperMistake();
     if (code === 'KeyT') toggleAutopilotMode();
     if (code === 'KeyG') toggleGuideLineMode();
+    if (code === 'KeyM') toggleMuteMode();
     if (code === 'KeyR') resetCarPosition();
   }
 });
@@ -464,10 +476,14 @@ function evaluateLeftHandTraffic(now) {
       lastWrongWayToast = now;
     }
   } else {
-    setLaneUI(
-      'safe',
-      car.isLaneAssistActive ? '좌측 차선 정상 주행 중 (차선유지 보조 작동)' : '좌측 차선 정상 주행 중'
-    );
+    if (autopilot.enabled && autopilot.statusReason) {
+      setLaneUI('safe', `🤖 자율주행 · ${autopilot.statusReason}`);
+    } else {
+      setLaneUI(
+        'safe',
+        car.isLaneAssistActive ? '좌측 차선 정상 주행 중 (차선유지 보조 작동)' : '좌측 차선 정상 주행 중'
+      );
+    }
   }
 }
 
