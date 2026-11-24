@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <!-- 모바일에서 핀치 줌 방지 및 노치(안전영역) 대응 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>일본 좌측 주행 3D 시뮬레이터 (렌트카 연습)</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <!-- 3D 도로 화면이 그려지는 메인 컨테이너 -->
+  <div id="canvas-container"></div>
+
+  <!-- 앞유리 와이퍼 오버레이 (한국 습관대로 왼쪽 레버를 누르면 작동!) -->
+  <div id="wiper-layer" class="wiper-layer">
+    <div class="wiper-blade wiper-left" id="wiper-left"></div>
+    <div class="wiper-blade wiper-right" id="wiper-right"></div>
+  </div>
+
+  <!-- 상단 정보 바 (HUD) -->
+  <header class="top-hud">
+    <div class="hud-left">
+      <div class="hud-top-row">
+        <div class="badge-jp">🇯🇵 일본 좌측 통행 연습</div>
+        <!-- 자율주행 시범, 주행보조선, 차선유지 보조, 기울기조향, 터치패드, 리셋 버튼 -->
+        <button class="hud-action-btn" id="btn-autopilot" title="일본 좌측 통행 모범 자율주행 켜기/끄기 (단축키 T)">🤖 자율주행 OFF</button>
+        <button class="hud-action-btn active" id="btn-guideline" title="좌측 차선 & 회전 주행 보조선 켜기/끄기 (단축키 G)">✨ 주행보조선 ON</button>
+        <button class="hud-action-btn active" id="btn-lka-toggle" title="차선 유지 보조(LKA) 켜기/끄기">🛣️ 차선유지 ON</button>
+        <button class="hud-action-btn" id="btn-tilt-toggle" title="폰/태블릿 좌우 기울기 핸들 조향 켜기/끄기">📐 기울기 OFF</button>
+        <button class="hud-action-btn" id="btn-touch-toggle" title="모바일 터치 버튼 표시/숨기기">📱 터치패드</button>
+        <button class="hud-action-btn" id="btn-reset" title="처음 위치로 리셋 (R)">🔄 리셋</button>
+      </div>
+      <div class="lane-status" id="lane-status">
+        <span class="status-dot safe" id="lane-dot"></span>
+        <span id="lane-text">좌측 차선 정상 주행 중</span>
+      </div>
+    </div>
+
+    <!-- 룸미러 장식 -->
+    <div class="rearview-mirror">
+      <div class="mirror-glass">
+        <span class="mirror-label">REAR VIEW</span>
+      </div>
+    </div>
+
+    <!-- 우측 상단 미니맵 -->
+    <div class="minimap-box">
+      <canvas id="minimap" width="150" height="150"></canvas>
+      <div class="minimap-caption">미니맵 (좌측 유지)</div>
+    </div>
+  </header>
+
+  <!-- 중앙 경고 및 코칭 토스트 메시지 -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- 조작법 안내 카드 (PC용, 모바일에서는 자동 숨김) -->
+  <aside class="controls-guide" id="controls-guide">
+    <div class="guide-header">
+      <span>🚗 조작 방법 (일본 우핸들)</span>
+      <button id="toggle-guide-btn" title="접기/펼치기">접기</button>
+    </div>
+    <div class="guide-body" id="guide-body">
+      <div class="key-row"><kbd>W</kbd> / <kbd>↑</kbd> <span>가속 (엑셀)</span></div>
+      <div class="key-row"><kbd>S</kbd> / <kbd>↓</kbd> <span>감속 / 후진</span></div>
+      <div class="key-row"><kbd>A</kbd> <kbd>D</kbd> / <kbd>←</kbd> <kbd>→</kbd> <span>핸들 좌/우</span></div>
+      <div class="key-row"><kbd>Space</kbd> <span>급정지 (브레이크)</span></div>
+      <hr />
+      <div class="key-row highlight-right">
+        <kbd>O</kbd> <kbd>P</kbd> <span>오른쪽 레버: 좌/우 깜빡이</span>
+      </div>
+      <div class="key-row highlight-warn">
+        <kbd>Q</kbd> <span>왼쪽 레버: 와이퍼 (주의!)</span>
+      </div>
+      <div class="key-row">
+        <kbd>R</kbd> <span>처음 위치로 리셋</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 모바일 전용 멀티터치 주행 컨트롤러 (왼손: 조향 / 오른손: 브레이크 & 엑셀) -->
+  <div class="touch-controls" id="touch-controls">
+    <!-- 왼쪽 하단: 좌/우 조향 버튼 -->
+    <div class="touch-group touch-steer-group">
+      <button class="touch-btn steer-btn" id="touch-left" aria-label="좌회전">◀</button>
+      <button class="touch-btn steer-btn" id="touch-right" aria-label="우회전">▶</button>
+    </div>
+
+    <!-- 오른쪽 하단: 브레이크/후진 & 엑셀 페달 -->
+    <div class="touch-group touch-pedal-group">
+      <button class="touch-btn pedal-btn brake-btn" id="touch-brake" aria-label="브레이크 및 후진">
+        <span class="pedal-icon">🛑</span>
+        <span class="pedal-label">브레이크<br />/후진</span>
+      </button>
+      <button class="touch-btn pedal-btn gas-btn" id="touch-gas" aria-label="엑셀 가속">
+        <span class="pedal-icon">⚡</span>
+        <span class="pedal-label">엑셀<br />(전진)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 하단 1인칭 우핸들 운전석 대시보드 (오른쪽에 핸들이 위치!) -->
+  <div class="cockpit-overlay">
+    <div class="dashboard-deck">
+      <!-- 왼쪽: 조수석 쪽 내비게이션 안내 패널 -->
+      <div class="passenger-side">
+        <div class="car-navi">
+          <div class="navi-title">NAVI · 좌측 통행 포인트</div>
+          <div class="navi-tip" id="navi-tip">
+            운전석이 <strong>오른쪽</strong>에 있으므로,<br />
+            내 몸이 도로 <strong>중앙선 쪽</strong>에 가깝게 주행하세요!
+          </div>
+        </div>
+      </div>
+
+      <!-- 오른쪽: 일본차 운전석 (계기판 + 핸들 + 양옆 레버) -->
+      <div class="driver-side">
+        <div class="instrument-cluster">
+          <div class="turn-indicator" id="ind-left">◀</div>
+          <div class="speedometer">
+            <span class="speed-value" id="speed-value">0</span>
+            <span class="speed-unit">km/h</span>
+          </div>
+          <div class="gear-display" id="gear-display">D</div>
+          <div class="turn-indicator" id="ind-right">▶</div>
+        </div>
+
+        <div class="steering-area">
+          <!-- 왼쪽 레버: 와이퍼 -->
+          <button class="stalk stalk-left" id="btn-wiper" title="왼쪽 레버: 와이퍼 (단축키 Q)">
+            <span class="stalk-label">와이퍼<br />(Q)</span>
+          </button>
+
+          <!-- 회전하는 핸들 SVG -->
+          <div class="steering-wheel-wrap">
+            <svg id="steering-wheel" class="steering-wheel" viewBox="0 0 200 200">
+              <circle cx="100" cy="100" r="82" fill="none" stroke="#1e222a" stroke-width="18" />
+              <circle cx="100" cy="100" r="82" fill="none" stroke="#374151" stroke-width="4" />
+              <rect x="95" y="10" width="10" height="16" rx="3" fill="#ef4444" />
+              <path d="M 28 100 L 172 100" stroke="#262b36" stroke-width="18" stroke-linecap="round" />
+              <path d="M 100 100 L 100 176" stroke="#262b36" stroke-width="20" stroke-linecap="round" />
+              <circle cx="100" cy="100" r="32" fill="#181c24" stroke="#4b5563" stroke-width="3" />
+              <text x="100" y="105" text-anchor="middle" fill="#9ca3af" font-size="11" font-weight="bold">JP-RENT</text>
+            </svg>
+          </div>
+
+          <!-- 오른쪽 레버: 방향지시등 -->
+          <div class="stalk-right-group">
+            <button class="stalk stalk-right" id="btn-turn-left" title="좌회전 깜빡이 (단축키 O)">
+              <span>◀ 좌 (O)</span>
+            </button>
+            <button class="stalk stalk-right" id="btn-turn-right" title="우회전 깜빡이 (단축키 P)">
+              <span>우 ▶ (P)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
